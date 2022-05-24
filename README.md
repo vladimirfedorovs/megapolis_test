@@ -1,5 +1,3 @@
-# megapolis_test
-
 # Тест SQL
 
 На основе таблиц базы данных, напишите SQL код, который возвращает необходимые результаты
@@ -56,7 +54,7 @@ select count (*) from items
 | #                             |
 
 ```sql
--- result here
+select count (*) from customer
 ```
 
 ### 2) Количество покупателей из Италии и Франции
@@ -67,7 +65,10 @@ select count (*) from items
 | Italy                     | #                             |
 
 ```sql
--- result here
+select country_name, count(*) from customer a
+left join countries b on a.country_code = b.country_code
+where country_name in ('France','Italy')
+group by country_name
 ```
 
 ### 3) ТОП 10 покупателей по расходам
@@ -83,7 +84,13 @@ select count (*) from items
 | #                      | #           |
 
 ```sql
--- result here
+select top(10)
+customer_name, sum(item_price*quantity) revenue
+from orders a
+left join items b on a.item_id = b.item_id
+left join customer c on a.customer_id = c.customer_id
+group by customer_id, customer_name --группируем по id на случай совпадающих имен
+order by revenue desc
 ```
 
 ### 4) Общая выручка USD по странам, если нет дохода, вернуть NULL
@@ -97,7 +104,12 @@ select count (*) from items
 | Tanzania                  | #                     |
 
 ```sql
--- result here
+select country_name, sum(item_price*quantity) RevenuePerCountry
+from countries a
+left join customer b on a.country_code = b.country_code
+left join orders c on b.customer_id = c.customer_id
+left join items d on c.item_id = d.item_id
+group by country_name
 ```
 
 ### 5) Самый дорогой товар, купленный одним покупателем
@@ -113,7 +125,16 @@ select count (*) from items
 | #                | #                  | #                         |
 
 ```sql
--- result here
+with pre as (
+select a.customer_id, customer_name,  item_name,
+row_number() over(partition by a.customer_id, customer_name order by item_price desc) rn
+from customer a
+left join orders b on a.customer_id = b.customer_id
+left join items c on b.item_id = c.item_id
+)
+select customer_id, customer_name, item_name MostExpensiveItemName
+from pre 
+where rn = 1
 ```
 
 ### 6) Ежемесячный доход
@@ -129,7 +150,11 @@ select count (*) from items
 | #                     | #                 |
 
 ```sql
--- result here
+select trunc(date_time, 'mm') report_month, sum(item_price*quantity) Total_Revenue
+from orders a 
+left join items b on a.item_id = b.item_id
+group by trunc(date_time, 'mm')
+-- если имеется в виду, что нужно выводить только номер месяца, то trunc(date_time, 'mm') нужно заменить на extract(month from date_time)
 ```
 
 ### 7) Общий доход в MENA
@@ -139,7 +164,10 @@ select count (*) from items
 | #                      |
 
 ```sql
--- result here
+-- не разобрался, что такое общий доход в MENA, вывел просто общий доход за все время
+select sum(item_price*quantity) Total_Revenue_MENA
+from orders a 
+left join items b on a.item_id = b.item_id
 ```
 
 ### 8) Найти дубликаты
@@ -149,5 +177,8 @@ select count (*) from items
 Вы должны их найти и вернуть количество дубликатов.
 
 ```sql
--- result here
+select date_time, customer_id, item_id, count(*) cnt
+from orders
+group by date_time, customer_id, item_id
+having count(*) > 1 
 ```
